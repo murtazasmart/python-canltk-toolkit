@@ -1,0 +1,7 @@
+__pycache__/
+tensorflowNN/__pycache__/
+tensorflowNN/aclImdb/
+tensorflowNN/images/
+tensorflowNN/aclImdb_v1.tar.gz
+svm/
+mlp/
