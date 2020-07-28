@@ -7,7 +7,7 @@ import numpy as np
 import re
 import sys
 
-from feature_extraction import generate_values, normalize_data, set_variables
+from feature_extraction import FeatureExtraction
 from algorithms.svm import SVM
 from algorithms.mlp import MLP
 from algorithms.tensorflowNN import TensorflowNN
@@ -40,7 +40,7 @@ class PredictionController:
         static_feature_table = []
         dynamic_feature_table = []
 
-        CONFIG = set_variables(NAME)
+        CONFIG = FeatureExtraction.set_variables(NAME)
 
         # f = open("D:\MSc\Chat Parser Script\chat-data\extracted-features\chat1-MustafaAbid-MurtazaAn-feature-set.json", encoding="utf8")
         f = open("D:\\MSc\\Chat Parser Script\\chat-data\\extracted-features\\" + NAME + "-feature-set.json", encoding="utf8")
@@ -56,14 +56,14 @@ class PredictionController:
         # chat_message = "Let me know pricing. Also gym is empty these days. Let's play badminton"
         # chat_message = "No bro. Ill join after dinner. Let me know where ull r going."
 
-        feature_table, static_feature_table, dynamic_feature_table = generate_values(CONFIG, chat_message, data_dictionary, feature_table, static_feature_table, dynamic_feature_table, 1)
+        feature_table, static_feature_table, dynamic_feature_table = FeatureExtraction.generate_values(CONFIG, chat_message, data_dictionary, feature_table, static_feature_table, dynamic_feature_table, 1)
 
         dataframe = pd.read_csv(CSV_OUTPUT_FILE_NAME)
         train_dict = dataframe.to_dict('records')
 
         train_dict.append(feature_table[0])
 
-        normalizedData = normalize_data(train_dict)
+        normalizedData = FeatureExtraction.normalize_data(train_dict)
         chat_features = train_dict[len(normalizedData) - 1]
 
         chat_features = normalizedData[len(normalizedData) - 1]
@@ -86,11 +86,12 @@ class PredictionController:
             df = pd.DataFrame(chat_features, index=[0])
             svm_result = self.svmInstance.predict_svm(CHAT_MODEL_BASE_PATH + "svm\\" + chatModel + ".pkl", df)
             mlp_result = self.mlpInstance.predict_mlp(CHAT_MODEL_BASE_PATH + "mlp\\" + chatModel + ".pkl", df)
-            tf_result = self.tensorflowNNInstance.predict_tensorflow_nn(CHAT_MODEL_BASE_PATH + "tensorflow-RNN\\" + chatModel, df)
-            tf_result_formatted = []
-            for elem in tf_result:
-                tf_result_formatted.extend(elem)
-            data = {'tf_pred':tf_result_formatted[0], 'mlp_pred':mlp_result, 'svm_pred': svm_result, 'result': 0}
+            # tf_result = self.tensorflowNNInstance.predict_tensorflow_nn(CHAT_MODEL_BASE_PATH + "tensorflow-RNN\\" + chatModel, df)
+            # tf_result_formatted = []
+            # for elem in tf_result:
+            #     tf_result_formatted.extend(elem)
+            # data = {'tf_pred':tf_result_formatted[0], 'mlp_pred':mlp_result, 'svm_pred': svm_result, 'result': 0}
+            data = {'mlp_pred':mlp_result, 'svm_pred': svm_result, 'result': 0}
             test_dataframe = pd.DataFrame(data, index=[0])
             result = self.ensemblingInstance.predict_ensemble(CHAT_MODEL_BASE_PATH + "ensemble\\" + chatModel, test_dataframe)[0][0]
             result = result.tolist()

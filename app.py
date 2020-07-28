@@ -4,6 +4,8 @@ from flask import request, jsonify, redirect
 import sys
 import os
 from flask_cors import CORS
+import time
+import json
 
 from predict_controller import PredictionController
 from build_controller import BuildController
@@ -43,13 +45,26 @@ def feature_extraction():
         firstModel = request.args['firstModel']
         secondModel = request.args['secondModel']
         isBuildModel = request.args['buildModel']
+        print("Request feature extraction " + firstModel + " " + secondModel)
+        timeStats = {}
+        startTimeFirstModel = time.time()
         buildController.extract(firstModel)
+        endTimeFirstModel = time.time()
+        timeStats["firstModelStartTime"] = endTimeFirstModel - startTimeFirstModel
+        startTimeSecondModel = time.time()
         buildController.extract(secondModel)
-        print("Finished all feature extractions")
-        if isBuildModel:
+        endTimeSecondModel = time.time()
+        timeStats["secondModelStartTime"] = endTimeSecondModel - startTimeSecondModel
+        timeStats["totalTime"] = ((endTimeFirstModel - startTimeFirstModel) + endTimeSecondModel - startTimeSecondModel)
+        print("Finished all feature extractions for " + firstModel + " " + secondModel)
+        jsond = json.dumps(timeStats)
+        f = open("D:/MSc/Chat Parser Script/chat-data/timings/" + firstModel + "feature-extraction-time-stats.json", "w")
+        f.write(jsond)
+        f.close()
+        if isBuildModel == "true":
             buildController.build(firstModel)
             buildController.build(secondModel)
-            print("Finished building all models")
+            print("Finished building all models for " + firstModel + " " + secondModel)
         return jsonify({"result": "Started feature extraction & building models"})
 
 @app.route('/predict')
@@ -71,8 +86,19 @@ def build_model():
     if 'firstModel' in request.args and 'secondModel' in request.args:
         firstModel = request.args['firstModel']
         secondModel = request.args['secondModel']
+        timeStats = {}
+        startTimeFirstModel = time.time()
         buildController.build(firstModel)
+        endTimeFirstModel = time.time()
+        timeStats["firstModelStartTime"] = endTimeFirstModel - startTimeFirstModel
+        startTimeSecondModel = time.time()
         buildController.build(secondModel)
+        endTimeSecondModel = time.time()
+        timeStats["firstModelStartTime"] = endTimeSecondModel - startTimeSecondModel
+        jsond = json.dumps(timeStats)
+        f = open("D:/MSc/Chat Parser Script/chat-data/timings/" + firstModel + "build-time-stats.json", "w")
+        f.write(jsond)
+        f.close()
         print("Finished building all models")
 # app.add_url_rule('/models', 'hello_world', hello_world, methods=['GET'])
 
