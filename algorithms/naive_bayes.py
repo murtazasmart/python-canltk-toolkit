@@ -1,69 +1,78 @@
 # pylint: disable=unused-variable
-from sklearn.neural_network import MLPClassifier
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB, ComplementNB, BernoulliNB
 import sklearn.utils
 import pickle
 import os
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_selection import VarianceThreshold
 
-class MLP:
-    
+class NaiveBayes:
+
     __instance = None
     models = {}
+    # feature_selection = {}
 
     @staticmethod 
     def getInstance():
         """ Static access method. """
-        if MLP.__instance == None:
-            MLP()
-        return MLP.__instance
+        if NaiveBayes.__instance == None:
+            NaiveBayes()
+        return NaiveBayes.__instance
 
     def __init__(self):
         """ Virtually private constructor. """
-        if MLP.__instance != None:
+        if NaiveBayes.__instance != None:
             raise Exception("This class is a singleton!")
         else:
-            MLP.__instance = self
-        for root, dirs, files in os.walk("D:\\MSc\\Chat Parser Script\\models\\mlp"):
+            NaiveBayes.__instance = self
+        for root, dirs, files in os.walk("D:\\MSc\\Chat Parser Script\\models\\naivebayes"):
             for filename in files:
                 pickle_model = 0
-                with open("D:\\MSc\\Chat Parser Script\\models\\mlp\\" + filename, 'rb') as file:
+                with open("D:\\MSc\\Chat Parser Script\\models\\naivebayes\\" + filename, 'rb') as file:
                     pickle_model = pickle.load(file)
                 self.models[filename] = pickle_model
-        print("MLP Models loaded")
+        print("NaiveBayes Models loaded")
 
-    def run_mlp(
-        self,
-        CSV_OUTPUT_FILE_NAME = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/chat3-AbbasJafferjee-HamzaNajmudeen-normalized-train-set.csv',
-        MODEL_FILE_NAME = 'D:/MSc/Chat Parser Script/models/mlp/chat3-model.pkl',
+    def run_naivebayes(self,
+        CSV_OUTPUT_FILE_NAME = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/chat10-Jonty-AliShabbir-normalized-train-set.csv',
+        MODEL_FILE_NAME = 'D:/MSc/Chat Parser Script/models/naivebayes/chat10-model.pkl',
     ):
-        CSV_OUTPUT_FILE_NAME 
 
         dataframe = pd.read_csv(CSV_OUTPUT_FILE_NAME)
         dataframe.head()
         dataframe = sklearn.utils.shuffle(dataframe)
 
+        # train, test = train_test_split(dataframe, test_size=0.2)
         train = dataframe
         print(len(train), 'train examples')
+
         x_train = train.to_numpy().tolist()
         y_train = []
         for i in x_train:
             y_train.append(i.pop())
 
-        clf = MLPClassifier(hidden_layer_sizes=(90, 90), activation='tanh', solver='adam', alpha=1e-5, learning_rate='invscaling')
-        clf.fit(x_train, y_train)
-        # MLPClassifier(alpha=1e-05, hidden_layer_sizes=(5, 2), random_state=1, solver='lbfgs')
+        # feature_selection = VarianceThreshold()
+        # x_train = feature_selection.fit_transform(x_train)
+        # self.feature_selection = feature_selection
+
+        gnb = BernoulliNB(alpha=1e-5, binarize=0.0)
+        # gnb = GaussianNB()
+        # gnb = MultinomialNB()
+        # gnb = ComplementNB(alpha=1e-5, norm=True)
+
+        gnb.fit(x_train, y_train)
 
         pkl_filename = MODEL_FILE_NAME
         with open(pkl_filename, 'wb') as file:
-            pickle.dump(clf, file)
+            pickle.dump(gnb, file)
 
-    def test_mlp(
-        self,
-        CSV_OUTPUT_FILE_NAME = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/chat3-AbbasJafferjee-HamzaNajmudeen-normalized-test-set.csv',
-        MODEL_FILE_NAME = 'D:/MSc/Chat Parser Script/models/mlp/chat3-model.pkl',
+    def test_naivebayes(self,
+        CSV_OUTPUT_FILE_NAME = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/chat10-Jonty-AliShabbir-normalized-test-set.csv',
+        MODEL_FILE_NAME = 'D:/MSc/Chat Parser Script/models/naivebayes/chat10-model.pkl',
     ):
-        CSV_OUTPUT_FILE_NAME 
 
         dataframe = pd.read_csv(CSV_OUTPUT_FILE_NAME)
         dataframe.head()
@@ -74,6 +83,10 @@ class MLP:
         for i in x_dataframe:
             y_dataframe.append(i.pop())
 
+        # feature_selection = VarianceThreshold()
+        # feature_selection.set_params(self.params)
+        # x_dataframe = self.feature_selection.transform(x_dataframe)
+            
         pickle_model = 0
         with open(MODEL_FILE_NAME, 'rb') as file:
             pickle_model = pickle.load(file)
@@ -107,30 +120,31 @@ class MLP:
 
         return test_result, tn, tp, fn, fp
 
-    def get_mlp_model(self, MODEL_FILE_NAME):
-        pickle_model = 0
-        with open(MODEL_FILE_NAME, 'rb') as file:
-            pickle_model = pickle.load(file)
-        return pickle_model
-
-
-    def predict_mlp(self, MODEL_FILE_NAME, dataframe):
+    def predict_naivebayes(self, MODEL_FILE_NAME, dataframe):
 
         x_dataframe = dataframe.to_numpy().tolist()
         y_dataframe = []
         for i in x_dataframe:
             y_dataframe.append(i.pop())
-        
-        MODEL_NAME = MODEL_FILE_NAME.split("\\")[len(MODEL_FILE_NAME.split("\\"))-1]
-        pickle_model = self.models[MODEL_NAME]
-        # with open(MODEL_FILE_NAME, 'rb') as file:
-        #     pickle_model = pickle.load(file)
+            
+        pickle_model = 0
+        with open(MODEL_FILE_NAME, 'rb') as file:
+            pickle_model = pickle.load(file)
 
         test_result = pickle_model.predict(x_dataframe)
 
         return test_result[0]
 
+    def get_naivebayes_model(self, MODEL_FILE_NAME):
+        pickle_model = 0
+        with open(MODEL_FILE_NAME, 'rb') as file:
+            pickle_model = pickle.load(file)
+        return pickle_model
 
-# run_mlp()
+# nb = NaiveBayes()
+# nb.run_naivebayess()
+# nb.test_naivebayes()
 
-# test_mlp()
+# run_naivebayes()
+
+# test_naivebayes()

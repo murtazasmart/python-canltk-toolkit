@@ -55,20 +55,27 @@ class TensorflowNN:
     # A small batch sized is used for demonstration purposes  
     train_dataframe = pd.read_csv(CSV_OUTPUT_FILE_NAME)
     train_dataframe.head()
-    # test = pd.read_csv("D:\MSc\Chat Parser Script\chat-data\extracted-features\chat2-MurtazaAn-MustafaAbid-normalized-test-set.csv")
-    # test.head()
 
-    # train, test = train_test_split(train_dataframe, test_size=test_split)
+    encoded_columns = []
+    f_count = 1 
+    encoded_columns_mapping = {}
+    for col in train_dataframe.columns:
+      if col == "result":
+        encoded_columns.append("result")
+      else:
+        encoded_columns_mapping[col] = f_count
+        encoded_columns.append("f-" + str(f_count))
+      f_count = f_count + 1
+    train_dataframe.columns = encoded_columns
+
     train, val = train_test_split(train_dataframe, test_size=test_split)
     print(len(train), 'train examples')
     print(len(val), 'validation examples')
-    # print(len(test), 'test examples')
 
 
     # Done to extract feature keys
     train_ds = self.df_to_dataset(train, batch_size=1)
     val_ds = self.df_to_dataset(val, shuffle=False, batch_size=1)
-    # test_ds = df_to_dataset(test, shuffle=False, batch_size=1)
 
     feature_keys = []
     for feature_batch, label_batch in train_ds.take(1):
@@ -84,10 +91,8 @@ class TensorflowNN:
 
     feature_layer = tf.keras.layers.DenseFeatures(feature_columns)
 
-    # batch_size = 32
     train_ds = self.df_to_dataset(train, batch_size=batch_size)
     val_ds = self.df_to_dataset(val, shuffle=False, batch_size=batch_size)
-    # test_ds = df_to_dataset(test, shuffle=False, batch_size=batch_size)
     METRICS = [
         tf.keras.metrics.TruePositives(name='tp'),
         tf.keras.metrics.FalsePositives(name='fp'),
@@ -116,22 +121,7 @@ class TensorflowNN:
     history = model.fit(train_ds,
               validation_data=val_ds,
               epochs=epochs_no)
-    model.save(MODEL_FILE_NAME) 
-    # loss, accuracy, tp, fp, tn, fn,  = model.evaluate(test_ds)
-    # print('Test Loss: {}'.format(loss))
-    # print('Test Accuracy: {}'.format(accuracy))
-    # print('Test TP: {}'.format(tp))
-    # print('Test FP: {}'.format(fp))
-    # print('Test TN: {}'.format(tn))
-    # print('Test FN: {}'.format(fn))
-
-    # pyplot.plot(history.history['loss'])
-    # pyplot.plot(history.history['val_loss'])
-    # pyplot.title('model train vs validation loss')
-    # pyplot.ylabel('loss')
-    # pyplot.xlabel('epoch')
-    # pyplot.legend(['train', 'validation'], loc='upper right')
-    # pyplot.show()
+    model.save(MODEL_FILE_NAME)
   
   def evaluate_tensorflow_nn(
     self,
@@ -141,8 +131,7 @@ class TensorflowNN:
     test_split=0.2,
     epochs_no=500
   ):
-    # A small batch sized is used for demonstration purposes  
-    # URL = CSV_OUTPUT_FILE_NAME
+    # A small batch sized is used for demonstration purposes
     test = pd.read_csv(CSV_OUTPUT_FILE_NAME)
     test.head()
 
@@ -203,4 +192,25 @@ class TensorflowNN:
       print("Loaded model for tensorflowNN " + MODEL_FILE_NAME)
       return model
 
-# run_tensorflow_nn()
+# import json
+# import time
+
+# names = [
+#   "chat1-MustafaAbid-MurtazaAn,
+# ]
+
+# tn = TensorflowNN()
+# BASE_NAME = "chat1-MustafaAbid-MurtazaAn"
+# CSV_OUTPUT_FILE_NAME = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/' + BASE_NAME +'-normalized-train-set.csv'
+# MODEL_NO = BASE_NAME.split
+# timeStats = {}
+# startTime = time.time()
+# tn.run_tensorflow_nn(
+#     CSV_OUTPUT_FILE_NAME,
+#     MODEL_FILE_NAME = 'D:/MSc/Chat Parser Script/models/tensorflow-RNN/chat1-model')
+# endTime = time.time()
+# timeStats["tfNN"] = endTime - startTime
+# jsond = json.dumps(timeStats)
+# f = open("D:/MSc/Chat Parser Script/chat-data/timings/" + BASE_NAME + "-build-time-tfNN.json", "w")
+# f.write(jsond)
+# f.close()
