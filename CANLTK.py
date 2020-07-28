@@ -21,6 +21,10 @@ import arff
 import tempfile
 import json
 
+from lexical_diversity import lex_div
+import pytypo
+import language_check
+
 from sklearn import preprocessing
 
 class CANLTK:
@@ -327,6 +331,130 @@ class CANLTK:
 
     #     transformed_data, transformed_metadata = transformed_dataset  # pylint: disable=unused-variable
     #     return transformed_data
+
+    @staticmethod
+    def lexical_ttr(tokens):
+        return lex_div.ttr(tokens)
+
+    @staticmethod
+    def lexical_msttr(tokens):
+        return lex_div.msttr(tokens)
+
+    @staticmethod
+    def lexical_mattr(tokens):
+        return lex_div.mattr(tokens)
+
+    @staticmethod
+    def lexical_hdd(tokens):
+        return lex_div.hdd(tokens)
+
+    @staticmethod
+    def lexical_mtld(tokens):
+        return lex_div.mtld(tokens)
+
+    @staticmethod
+    def n_word_extensions(tokens):
+        count = 0
+        for token in tokens:
+            try:
+                corrected_word = pytypo.correct(token)
+                if not (corrected_word == token):
+                    count = count + 1
+            except:
+                ex = 1
+        return count
+
+    @staticmethod
+    def most_common_word_extensions(CONFIG, tokens):
+        fd = nltk.FreqDist(tokens)
+        extend_word_list_dict = []
+        for k,v in fd.items():
+            try:
+                corrected_word = pytypo.correct(k)
+                if not (corrected_word == k):
+                    extend_word_list_dict.append({
+                        "word": k,
+                        "count": v
+                    })
+            except:
+                ex = 1
+        extend_word_list_dict_sorted = sorted(extend_word_list_dict, key=lambda k: k['count'], reverse=True)
+        top_extend_word_list_dict = extend_word_list_dict_sorted[:int(CONFIG['NO_OF_MOST_FREQ_WORD_EXTENSIONS'])]
+        return top_extend_word_list_dict
+
+    @staticmethod
+    def count_each_word_extension(extend_word_list_dict, tokens):
+        each_extend_word_list_dict = []
+        for extended_word_d in extend_word_list_dict:
+            count = 0
+            if extended_word_d["word"] in tokens:
+                count = count + 1
+            each_extend_word_list_dict.append({
+                    "word": extended_word_d["word"],
+                    "count": count
+            })
+        return each_extend_word_list_dict
+            
+        
+    @staticmethod
+    def most_common_bigrams(CONFIG, tokens):
+        #Create your bigrams
+        bgs = nltk.bigrams(tokens)
+
+        #compute frequency distribution for all the bigrams in the text
+        bigrams_freq_dist = nltk.FreqDist(bgs)
+        top_list =list(filter(lambda x: x[1]>=int(CONFIG['BIGRAMS_MIN_PRUNE_VALUE']),bigrams_freq_dist.items()))
+        converted_list = []
+        for i in top_list:
+            converted_list.append({
+                "ngrams": list(i[0]),
+                "count": i[1]
+            })
+        return converted_list
+        
+    @staticmethod
+    def most_common_trigrams(CONFIG, tokens):
+        #Create your trigrams
+        tgs = nltk.trigrams(tokens)
+
+        #compute frequency distribution for all the trigrams in the text
+        trigrams_freq_dist = nltk.FreqDist(tgs)
+        top_list =list(filter(lambda x: x[1]>=int(CONFIG['TRIGRAMS_MIN_PRUNE_VALUE']),trigrams_freq_dist.items()))
+        converted_list = []
+        for i in top_list:
+            converted_list.append({
+                "ngrams": list(i[0]),
+                "count": i[1]
+            })
+        return converted_list
+
+    @staticmethod
+    def count_each_ngrams(tokens, freq_dist_dict):
+        ngs = nltk.bigrams(tokens)
+
+        ngrams_freq_dist = nltk.FreqDist(ngs)
+        ngram_freq_dist_count = []
+        for li in freq_dist_dict:
+            freq_count = 0
+            for bigram, count in ngrams_freq_dist.items():
+                if bigram == li:
+                    freq_count = count
+                    break
+            ngram_freq_dist_count.append({
+                "ngrams": li["ngrams"],
+                "count": freq_count
+            })
+        return ngram_freq_dist_count
+
+    @staticmethod
+    def n_grammar_errors(string):
+        tool = language_check.LanguageTool('en-US')
+        matches = tool.check(string)
+        count = 0
+        for m in matches:
+            if m.category == "Grammar":
+                count = count + 1
+        return count
 
     @staticmethod
     def normalize_data(data):

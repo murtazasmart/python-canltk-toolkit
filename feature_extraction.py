@@ -17,6 +17,7 @@ from nltk.tokenize import RegexpTokenizer, sent_tokenize, word_tokenize, TweetTo
 import arff
 import tempfile
 import json
+import time
 
 from sklearn import preprocessing
 import CANLTK
@@ -71,6 +72,18 @@ class FeatureExtraction:
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-emojis-count"] = CANLTK.n_total_emojis(line)
 
+      wordTokens_with_emojis_emoticons = FeatureExtraction.twitter_tokenizer.tokenize(line)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-lexical-ttr"] = CANLTK.lexical_ttr(wordTokens_with_emojis_emoticons)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-lexical-mtld"] = CANLTK.lexical_mtld(wordTokens_with_emojis_emoticons)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-lexical-msttr"] = CANLTK.lexical_msttr(wordTokens_with_emojis_emoticons)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-lexical-mattr"] = CANLTK.lexical_mattr(wordTokens_with_emojis_emoticons)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-lexical-hdd"] = CANLTK.lexical_hdd(wordTokens_with_emojis_emoticons)
+
       # pylint: disable=unused-variable
       for key, value in data_dictionary['top_emoticons'].items():
           # TODO COUNT IS BEING DONE
@@ -86,7 +99,8 @@ class FeatureExtraction:
 
       # static_d.update(n_each_emoticons(line))
       # static_d.update(n_each_emojis(line))
-      line = CANLTK.prune_emojis_emoticons(line)
+    #   line = CANLTK.prune_emojis_emoticons(line)
+      line_pruned_emojis_emoticons = CANLTK.prune_emojis_emoticons(line)
       # TODO emojis per word
       # TODO no of emojis per character
       # TODO CODE FOR character 5 and 6 grams ... dont understand
@@ -97,7 +111,7 @@ class FeatureExtraction:
       # this even cosiders ? as words and Okay👍👍🏿 as a single word
       #     print(word_tokenize(line))
       # this one is ideal breaks up I'll emojis etc, has been trained on twitter dataset
-      wordTokens = FeatureExtraction.twitter_tokenizer.tokenize(line)
+      wordTokens = FeatureExtraction.twitter_tokenizer.tokenize(line_pruned_emojis_emoticons)
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-word-count"] = len(wordTokens)
       CONFIG['feature_count']+=1
@@ -120,17 +134,19 @@ class FeatureExtraction:
       # word extensions - this can be covered to a certain extent with list of common misspelled words
       # both of these count punctuations used in emoticons too, need to remove them, need to cleanse emojis and send
       CONFIG['feature_count']+=1
-      static_d["f" + str(CONFIG['feature_count']) + "-punctuations-count"] = CANLTK.n_total_punctuations(line)
-      static_d.update(CANLTK.print_n_each_punctuation(CONFIG, line))
+      static_d["f" + str(CONFIG['feature_count']) + "-punctuations-count"] = CANLTK.n_total_punctuations(line_pruned_emojis_emoticons)
+      static_d.update(CANLTK.print_n_each_punctuation(CONFIG, line_pruned_emojis_emoticons))
       CONFIG['feature_count']+=1
-      static_d["f" + str(CONFIG['feature_count']) + "-total-unicode-punctuations"] = CANLTK.n_punctuation(line)
+      static_d["f" + str(CONFIG['feature_count']) + "-total-unicode-punctuations"] = CANLTK.n_punctuation(line_pruned_emojis_emoticons)
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-function-words"] = CANLTK.n_function_words(wordTokens)
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-context-words"] = CANLTK.n_context_words(wordTokens)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-word-extensions"] = CANLTK.n_word_extensions(wordTokens)
       # TODO doesnt list each unicode - general punctioation and its frequency
       # TODO relative frequency of function word
-      sentTokens = sent_tokenize(line)
+      sentTokens = sent_tokenize(line_pruned_emojis_emoticons)
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-sentences"] = len(sentTokens)
       # isnt this same as avg_words print("average number of character in a line ", )
@@ -139,14 +155,35 @@ class FeatureExtraction:
       static_d["f" + str(CONFIG['feature_count']) + "-sentences-starting-with-lowercase"] = CANLTK.n_lowercase_sentences(sentTokens)
       CONFIG['feature_count']+=1
       static_d["f" + str(CONFIG['feature_count']) + "-sentences-starting-with-uppercase"] = CANLTK.n_uppercase_sentences(sentTokens)
+      CONFIG['feature_count']+=1
+      static_d["f" + str(CONFIG['feature_count']) + "-grammar-mistakes"] = CANLTK.n_grammar_errors(line_pruned_emojis_emoticons)
 
       for w in data_dictionary['most_common']:
           CONFIG['feature_count']+=1
-          dynamic_d["f" + str(CONFIG['feature_count']) + "-" + CANLTK.replace_keys(w[0])] = CANLTK.n_words(w[0], wordTokens)
+          dynamic_d["f" + str(CONFIG['feature_count']) + "-mc-" + CANLTK.replace_keys(w[0])] = CANLTK.n_words(w[0], wordTokens)
 
       for key, value in data_dictionary['misspelled_freq_dist'].items():
           CONFIG['feature_count']+=1
-          dynamic_d["f" + str(CONFIG['feature_count']) + "-" + CANLTK.replace_keys(key)] = CANLTK.n_words(key, wordTokens)
+          dynamic_d["f" + str(CONFIG['feature_count']) + "-ms-misspelled-" + CANLTK.replace_keys(key)] = CANLTK.n_words(key, wordTokens)
+      
+      word_extensions = CANLTK.count_each_word_extension(data_dictionary['most_common_word_extensions'], wordTokens)
+      for x in word_extensions:
+          CONFIG['feature_count']+=1
+          dynamic_d["f" + str(CONFIG['feature_count']) + "-mc-extensions-" + CANLTK.replace_keys(x["word"])] = x["count"]
+
+      bigrams_list_of_dict = CANLTK.count_each_ngrams(wordTokens_with_emojis_emoticons, data_dictionary['most_common_bigrams'])
+      bigram_count = 0
+      for x in bigrams_list_of_dict:
+          CONFIG['feature_count']+=1
+          dynamic_d["f" + str(CONFIG['feature_count']) + "-mc-bigrams-" + str(bigram_count)] = x["count"]
+          bigram_count = bigram_count + 1
+
+      trigrams_list_of_dict = CANLTK.count_each_ngrams(wordTokens_with_emojis_emoticons, data_dictionary['most_common_trigrams'])
+      trigram_count = 0
+      for x in trigrams_list_of_dict:
+          CONFIG['feature_count']+=1
+          dynamic_d["f" + str(CONFIG['feature_count']) + "-mc-trigrams-" + str(trigram_count)] = x["count"]
+          trigram_count = trigram_count + 1
 
       # d["result"] = RESULT
       full_d = {}
@@ -184,21 +221,32 @@ class FeatureExtraction:
       file_string = file_string + file_line + '. '
       file_line = file.readline().rstrip('\n')
     file.close()
+    # Counting each emojis and emoticon
     emoticons_dictionary = CANLTK.n_each_emoticons(file_string)
     emojis_dictionary = CANLTK.n_each_emojis(file_string)
-    top_emoticons = CANLTK.get_top_from_dictionary(emoticons_dictionary)
-    top_emojis = CANLTK.get_top_from_dictionary(emojis_dictionary)
+    word_tokens_with_emojis_emoticons = FeatureExtraction.twitter_tokenizer.tokenize(file_string)
+    most_common_bigrams_dictionary = CANLTK.most_common_bigrams(CONFIG, word_tokens_with_emojis_emoticons)
+    most_common_trigrams_dictionary = CANLTK.most_common_trigrams(CONFIG, word_tokens_with_emojis_emoticons)
+    # Getting top emojis and emoticons
+    top_emoticons = CANLTK.get_top_from_dictionary(emoticons_dictionary, CONFIG["EMOJI_EMOTICON_MIN_PRUNE_VALUE"])
+    top_emojis = CANLTK.get_top_from_dictionary(emojis_dictionary, CONFIG["EMOJI_EMOTICON_MIN_PRUNE_VALUE"])
+    # Removing emojis and emoticons from file string
     file_string = CANLTK.prune_emojis_emoticons(file_string)
     word_tokens = FeatureExtraction.twitter_tokenizer.tokenize(file_string)
     word_tokens = CANLTK.prune_punctuations_special_characters(word_tokens)
+    most_common_word_extensions_dictionary = CANLTK.most_common_word_extensions(CONFIG, word_tokens)
     word_tokens = CANLTK.prune_function_words(word_tokens)
+    # // add most often words extended
     freq_dist = FreqDist(word_tokens)
     misspelled_freq_dist = CANLTK.misspelled_word_list(CONFIG, word_tokens)
     data_dictionary = {
       'most_common': freq_dist.most_common(CONFIG['MOST_COMMON_WORDS']),
       'top_emoticons': top_emoticons,
       'top_emojis': top_emojis,
-      'misspelled_freq_dist': misspelled_freq_dist
+      'misspelled_freq_dist': misspelled_freq_dist,
+      "most_common_word_extensions": most_common_word_extensions_dictionary,
+      "most_common_bigrams" : most_common_bigrams_dictionary,
+      "most_common_trigrams": most_common_trigrams_dictionary
     }
     jsond = json.dumps(data_dictionary)
     f = open(CONFIG['FEATURE_SET_FILE_NAME'],"w")
@@ -278,8 +326,11 @@ class FeatureExtraction:
               s = open(os.path.join(directory, filename),"r", encoding="utf8")
               m = s.readlines()
               n = []
+              iterations = round(chat_count / (len(dir_list) - 2))
+              if iterations == 0:
+                  iterations = 1
               # pylint: disable=unused-variable
-              for i in range(round(chat_count / (len(dir_list) - 2))):
+              for i in range(iterations):
                   if len(n) == len(m):
                       break
                   ranNumber = random.randint(0, len(m) - 1)
@@ -483,6 +534,10 @@ class FeatureExtraction:
       CONFIG['MOST_COMMON_WORDS'] = 25
       CONFIG['MISSPELLED_MIN_PRUNE_VALUE'] = 25
       CONFIG['FULL_TEST_COUNT_PER_CHAT'] = 100
+      CONFIG['BIGRAMS_MIN_PRUNE_VALUE'] = 5
+      CONFIG['TRIGRAMS_MIN_PRUNE_VALUE'] = 5
+      CONFIG['NO_OF_MOST_FREQ_WORD_EXTENSIONS'] = 25
+      CONFIG['EMOJI_EMOTICON_MIN_PRUNE_VALUE'] = 1
       CONFIG['feature_count'] = 0
       return CONFIG
 
@@ -494,15 +549,32 @@ class FeatureExtraction:
               for filename in files:
                   print(filename[:-4])
                   BASE_NAME = filename[:-4]
-                  CONFIG = FeatureExtraction.set_variables(BASE_NAME)
-                  FeatureExtraction.run_extraction(CONFIG)
+                  if not os.path.exists("D:/MSc/Chat Parser Script/chat-data/extracted-features/" + BASE_NAME + "-normalized-train-set.csv"):
+                    timeStats = {}
+                    startTime = time.time()
+                    CONFIG = FeatureExtraction.set_variables(BASE_NAME)
+                    FeatureExtraction.run_extraction(CONFIG)
+                    endTime = time.time()
+                    timeStats["featureExtraction"] = endTime - startTime
+                    jsond = json.dumps(timeStats)
+                    f = open("D:/MSc/Chat Parser Script/chat-data/timings/" + BASE_NAME + "feature-extraction-time-stats.json", "w")
+                    f.write(jsond)
+                    f.close()
+                    print("Completed extratction for " + BASE_NAME)
+                  else:
+                    print("Skipping ", BASE_NAME)
               print(len(files))
       else:
           # SINLE FILE CODE
           CONFIG = FeatureExtraction.set_variables(BASE_NAME)
           FeatureExtraction.run_extraction(CONFIG)
 
-# feature_extraction()
+# nameList = [
+#     "chat115-GehanCooray-SamaliL",
+#     "chat116-SamaliL-GehanCooray"
+# ]
+# for l in nameList:
+#     FeatureExtraction.feature_extraction(BASE_NAME=l)
 # write code to generate negative results for analysis using same params
 
 
