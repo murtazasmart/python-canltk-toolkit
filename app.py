@@ -9,6 +9,7 @@ import json
 
 from predict_controller import PredictionController
 from build_controller import BuildController
+from feature_extraction_controller import FeatureExtractionController
 
 # TODO CHECK HOW TO PRELOAD MODELS
 
@@ -16,6 +17,7 @@ app = Flask(__name__)
 CORS(app)
 predictionController = PredictionController()
 buildController = BuildController()
+featureExtractionController = FeatureExtractionController()
 # if __name__ == "__main__":
 #     print("yes")
 

@@ -41,6 +41,7 @@ class PredictionController:
         dynamic_feature_table = []
 
         CONFIG = FeatureExtraction.set_variables(NAME)
+        print(NAME)
 
         # f = open("D:\MSc\Chat Parser Script\chat-data\extracted-features\chat1-MustafaAbid-MurtazaAn-feature-set.json", encoding="utf8")
         f = open("D:\\MSc\\Chat Parser Script\\chat-data\\extracted-features\\" + NAME + "-feature-set.json", encoding="utf8")

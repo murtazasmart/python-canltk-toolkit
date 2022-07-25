@@ -65,7 +65,7 @@ class Ensembling:
       for filename in files:
         # print(filename[:-4])
         BASE_NAME = filename[:-4]
-        if re.search("(normalized-train-set)", BASE_NAME):
+        if re.search("(static-normalized-train-set)", BASE_NAME):
           CHAT_NO = BASE_NAME.split("-")[0]
           CHAT_NAME = BASE_NAME.split("-")[1] + '-' + BASE_NAME.split("-")[2]
           FEATURES_BASE_FOLDER = 'D:/MSc/Chat Parser Script/chat-data/extracted-features/'
